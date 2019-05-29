@@ -72,10 +72,13 @@ def talk_to_me(bot, update): # этого нет в задании
     user_text = update.message.text # этого нет в задании
     update.message.reply_text(user_text) # этого нет в задании
 
+
+#######################################################
+#  НЕ ДОДЕЛАЛ !!!!!!!!!!!!!!!!!!!!
 new_city_list = ['Москва', 'Астрахань', 'Казань'] # не нашёл нормальный список городов
 city_list = new_city_list
 
-def cities (bot, update, args):
+def cities (bot, update, args):  
     global new_city_list
     global city_list
 
@@ -109,6 +112,7 @@ def cities (bot, update, args):
     city_list = new_city_list
     print('4', city_list)
     
+########################################################
 
 
 def main():
