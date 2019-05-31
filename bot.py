@@ -75,20 +75,20 @@ def talk_to_me(bot, update): # этого нет в задании
 
 #######################################################
 #  ИГРА В ГОРОДА - явно куча лишнего кода и всё неоптимально
-city_new_list = ['Москва', 'Астрахань', 'Казань', 'Нальчик'] # не нашёл нормальный список городов
-city_list = city_new_list
+new_city_list = ['Москва', 'Астрахань', 'Казань', 'Нальчик'] # не нашёл нормальный список городов
+city_list = new_city_list.copy()
 last_letter = ''
 
 def cities (bot, update, args):  
-    global city_new_list # = ['Москва', 'Астрахань', 'Казань', 'Нальчик'] # не понимаю, почему нужно 2й раз
+    global new_city_list
     global city_list
     global last_letter
 
-    print('new', city_new_list)
+    print('new', new_city_list)
     print('1',city_list)
    
     if args[0] == 'reset':
-        city_list = city_new_list
+        city_list = new_city_list
         last_letter = ''
         update.message.reply_text('city list reset')
         return
@@ -106,13 +106,12 @@ def cities (bot, update, args):
         return
 
     print('2',city_list)
-    print('new2', city_new_list) # ГДЕ И КАК ОНО ОБНОВЛЯЕТ НОВЫЙ СПИСОК ТОЖЕ???
+    print('new2', new_city_list)
 
     if city[-1] == 'ь':
         user_last_letter = city[-2].capitalize()
     else:
         user_last_letter = city[-1].capitalize()
-
 
     for city_chk in city_list:
         if city_chk[0] == user_last_letter:
@@ -126,7 +125,7 @@ def cities (bot, update, args):
             return
     
     update.message.reply_text('Вы победили')
-    city_list = city_new_list
+    city_list = new_city_list
     last_letter = ''
     print('4', city_list)
     
