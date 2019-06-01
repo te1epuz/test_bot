@@ -1,8 +1,9 @@
-from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
-import ephem
 import datetime
+import ephem
+
 import settings
 
+from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
 
 def greet_user(bot, update):
     text = 'Вызван /start'
