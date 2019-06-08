@@ -14,7 +14,7 @@ def greet_user(bot, update, user_data):
     text = 'Привет, {} {}'.format(update.message.chat.first_name, emo)
     update.message.reply_text(text, reply_markup=get_keyboard())
     logging.info('{}({}): /start'.format(update.message.chat.username, update.message.chat.first_name))
-######################################################### НЕ ПИШЕТ ЛОГ ПО-РУССКИ!!!!!!!!!!!!!!!!!!!!!!
+
 
 def wordcount(bot, update):
     user_text = update.message.text
@@ -69,7 +69,7 @@ def planet_chk(bot, update, args): # Вроооде бы проще через 1
     print(text)
     update.message.reply_text(text)
     curr_date = str(datetime.datetime.now()) # Вытянуть текущую дату
-
+    
     if planet == 'Mars':
         planet_date = ephem.Mars(curr_date)
     if planet == 'Uranus':
@@ -78,6 +78,9 @@ def planet_chk(bot, update, args): # Вроооде бы проще через 1
         planet_date = ephem.Neptune(curr_date)
     if planet == 'Jupiter':
         planet_date = ephem.Jupiter(curr_date)
+    
+    # planet_date = getattr(ephem, planet)(curr_date) #вот так можно без кучи ифов - нужно разобраться
+    # planet_date = planet_date(curr_date) # или так
 
     try:
         const = ephem.constellation(planet_date)
