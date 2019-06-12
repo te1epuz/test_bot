@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import logging
 
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, RegexHandler
