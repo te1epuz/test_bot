@@ -82,6 +82,7 @@ def main():
     logging.info('Старт бота')  
 
     dp = mybot.dispatcher
+
     anketa = ConversationHandler(
         entry_points=[RegexHandler('^(Заполнить анкету)$', anketa_start, pass_user_data=True)],
         states={
