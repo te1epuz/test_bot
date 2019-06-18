@@ -1,6 +1,6 @@
 import logging
 
-from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, RegexHandler
+from telegram.ext import CommandHandler, ConversationHandler, Filters, MessageHandler, RegexHandler, Updater
 
 from handlers import * # импотирует лишнее
 import settings
@@ -82,19 +82,35 @@ def main():
     logging.info('Старт бота')  
 
     dp = mybot.dispatcher
+    anketa = ConversationHandler(
+        entry_points=[RegexHandler('^(Заполнить анкету)$', anketa_start, pass_user_data=True)],
+        states={
+            "name": [MessageHandler(Filters.text, anketa_get_name, pass_user_data=True)],
+            "rating": [RegexHandler('^(1|2|3|4|5)$', anketa_rating, pass_user_data=True)],
+            "comment": [MessageHandler(Filters.text, anketa_comment, pass_user_data=True),
+                        CommandHandler('cancel', anketa_skip_comment, pass_user_data=True)]
+        },
+        # fallbacks=[MessageHandler(Filters.text, dontknow, pass_user_data=True)] НЕ РАБОТАЕТ  !!!!!!!!!!!!!!!!!!!!!!!!
+        fallbacks=[MessageHandler(
+            Filters.text | Filters.video | Filters.photo | Filters.document,
+            dontknow,
+            pass_user_data=True # ТАК ТОЖЕ НЕ РАБОТАЕТ!!!!!!!!!!!!!!!!!
+        )]
+    )
+        
     dp.add_handler(CommandHandler('start', greet_user, pass_user_data=True))
+
+    dp.add_handler(anketa)    
+
     dp.add_handler(CommandHandler('planet', planet_chk, pass_args=True)) # вытягивание аргумента
     dp.add_handler(CommandHandler('wordcount', wordcount))
     dp.add_handler(CommandHandler('next_full_moon', next_full_moon, pass_args=True))
     dp.add_handler(CommandHandler('cities', cities, pass_args=True))
     dp.add_handler(CommandHandler('cat', send_cat_picture, pass_user_data=True))
-
     dp.add_handler(RegexHandler('^(Хочу кота!)$', send_cat_picture, pass_user_data=True))
     dp.add_handler(RegexHandler('^(Сменить аву)$', change_avatar, pass_user_data=True))
-
     dp.add_handler(MessageHandler(Filters.contact, get_contact, pass_user_data=True))
     dp.add_handler(MessageHandler(Filters.location, get_location, pass_user_data=True))
-
     dp.add_handler(MessageHandler(Filters.photo, check_user_photo, pass_user_data=True))
 
     dp.add_handler(MessageHandler(Filters.text, talk_to_me, pass_user_data=True)) # этого нет в задании
