@@ -176,5 +176,5 @@ def anketa_skip_comment(bot, update, user_data):
     return ConversationHandler.END
 
 
-def dontknow(bot, update, user_datа):
+def dontknow(bot, update, user_data):
     update.message.reply_text('Не понимаю')
