@@ -1,6 +1,7 @@
 import logging
 
 from telegram.ext import CommandHandler, ConversationHandler, Filters, MessageHandler, RegexHandler, Updater
+from telegram.ext import messagequeue as mq
 
 from handlers import * # импотирует лишнее
 import settings
@@ -76,12 +77,29 @@ def cities (bot, update, args):
 ########################################################
 
 
+subscribers = set()
+
+
+def my_test(bot, job):
+    print("Test", job.interval)
+    bot.sendMessage(chat_id=478005391, text="Spam_bot!")
+    job.interval += 5
+    if job.interval > 15:
+        bot.sendMessage(chat_id=478005391, text="Пока!")
+        job.schedule_removal() # удаляет задачу из очереди задач
+
+
 def main():
     mybot = Updater(settings.API_KEY, request_kwargs=settings.PROXY)
+    mybot.bot._msg_queue = mq.MessageQueue()
+    mybot.bot._is_messages_queued_default = True
     
     logging.info('Старт бота')  
 
     dp = mybot.dispatcher
+
+    mybot.job_queue.run_repeating(my_test, interval=5)
+    mybot.job_queue.run_repeating(send_updates, interval=5)
 
     anketa = ConversationHandler(
         entry_points=[RegexHandler('^(Заполнить анкету)$', anketa_start, pass_user_data=True)],
@@ -91,11 +109,10 @@ def main():
             "comment": [MessageHandler(Filters.text, anketa_comment, pass_user_data=True),
                         CommandHandler('cancel', anketa_skip_comment, pass_user_data=True)]
         },
-        # fallbacks=[MessageHandler(Filters.text, dontknow, pass_user_data=True)] НЕ РАБОТАЕТ  !!!!!!!!!!!!!!!!!!!!!!!!
         fallbacks=[MessageHandler(
             Filters.text | Filters.video | Filters.photo | Filters.document,
             dontknow,
-            pass_user_data=True # ТАК ТОЖЕ НЕ РАБОТАЕТ!!!!!!!!!!!!!!!!!
+            pass_user_data=True
         )]
     )
         
@@ -113,6 +130,11 @@ def main():
     dp.add_handler(MessageHandler(Filters.contact, get_contact, pass_user_data=True))
     dp.add_handler(MessageHandler(Filters.location, get_location, pass_user_data=True))
     dp.add_handler(MessageHandler(Filters.photo, check_user_photo, pass_user_data=True))
+
+    dp.add_handler(CommandHandler("subscribe", subscribe))
+    dp.add_handler(CommandHandler("unsubscribe", unsubscribe))
+
+    dp.add_handler(CommandHandler("alarm", set_alarm, pass_args=True, pass_job_queue=True))
 
     dp.add_handler(MessageHandler(Filters.text, talk_to_me, pass_user_data=True)) # этого нет в задании
     

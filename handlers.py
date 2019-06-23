@@ -7,18 +7,20 @@ from random import choice
 import ephem
 from telegram import ParseMode, ReplyKeyboardRemove, ReplyKeyboardMarkup
 from telegram.ext import ConversationHandler
+from telegram.ext import messagequeue as mq
 
 
+from bot import subscribers
 from utils import get_user_emo, get_keyboard, is_cat
 import settings
 
 
 def greet_user(bot, update, user_data):
+    print(update.message.chat_id)
     emo = get_user_emo(user_data)
     text = 'Привет, {} {}'.format(update.message.chat.first_name, emo)
     update.message.reply_text(text, reply_markup=get_keyboard())
     logging.info('{}({}): /start'.format(update.message.chat.username, update.message.chat.first_name))
-
 
 def wordcount(bot, update):
     user_text = update.message.text
@@ -34,7 +36,6 @@ def wordcount(bot, update):
         text = f'Количество слов: {len(words)}'
     update.message.reply_text(text)
 
-
 def next_full_moon(bot,update, args):
     if args == []:
         curr_date = datetime.datetime.now()
@@ -48,13 +49,11 @@ def next_full_moon(bot,update, args):
             print ('Неизвестный формат даты, укажите гггг/мм/дд')
     update.message.reply_text(text)
 
-
 def send_cat_picture(bot, update, user_data):
     cat_list = glob('images/cat*.jpg')
     cat_pic = choice(cat_list)
     bot.send_photo(chat_id=update.message.chat_id, photo=open(cat_pic, 'rb'), reply_markup=get_keyboard())
     logging.info('{}({}): /cat'.format(update.message.chat.username, update.message.chat.first_name))
-
 
 def change_avatar(bot, update, user_data):
     if 'emo' in user_data:
@@ -63,7 +62,6 @@ def change_avatar(bot, update, user_data):
     text = 'Новая аватарка -> {}'.format(user_data['emo'])
     update.message.reply_text(text, reply_markup=get_keyboard())
     logging.info('{}({}): avatar changed'.format(update.message.chat.username, update.message.chat.first_name))
-
 
 def planet_chk(bot, update, args): # Вроооде бы проще через 1й аргумент
     user_text = update.message.text
@@ -74,12 +72,12 @@ def planet_chk(bot, update, args): # Вроооде бы проще через 1
     update.message.reply_text(text)
     curr_date = str(datetime.datetime.now()) # Вытянуть текущую дату
     
-    if planet == 'Mars':
-        planet_date = ephem.Mars(curr_date)
-    if planet == 'Uranus':
-        planet_date = ephem.Uranus(curr_date)
-    if planet == 'Neptune':
-        planet_date = ephem.Neptune(curr_date)
+ #   if planet == 'Mars':
+ #       planet_date = ephem.Mars(curr_date)
+ #   if planet == 'Uranus':
+ #       planet_date = ephem.Uranus(curr_date)
+ #   if planet == 'Neptune':
+ #       planet_date = ephem.Neptune(curr_date)
     if planet == 'Jupiter':
         planet_date = ephem.Jupiter(curr_date)
     
@@ -94,7 +92,6 @@ def planet_chk(bot, update, args): # Вроооде бы проще через 1
         print ('Неизвестная планета :(')
         update.message.reply_text('Неизвестная планета :(')    
 
-
 def talk_to_me(bot, update, user_data):
     emo = get_user_emo(user_data)
     user_text = update.message.text
@@ -102,16 +99,13 @@ def talk_to_me(bot, update, user_data):
     update.message.reply_text(text, reply_markup=get_keyboard())
     logging.info('{}({}): wrote smth'.format(update.message.chat.username, update.message.chat.first_name))
 
-
 def get_contact(bot, update, user_data):
     logging.info('{}({}): contact - {}'.format(update.message.chat.username, update.message.chat.first_name, 
                                                 update.message.contact))
  
-
 def get_location(bot, update, user_data):
     logging.info('{}({}): location - {}'.format(update.message.chat.username, update.message.chat.first_name,
                                                 update.message.location))
-
 
 def check_user_photo(bot, update, user_data):
     update.message.reply_text("Обрабатываю фото...")
@@ -129,11 +123,9 @@ def check_user_photo(bot, update, user_data):
         update.message.reply_text("Кот не обнаружен.")
         logging.info('{}({}): non-cat image recieved - no action'.format(update.message.chat.username, update.message.chat.first_name))
 
-
 def anketa_start(bot, update, user_data):
     update.message.reply_text("Как вас зовут? Напишите имя и фамилию", reply_markup=ReplyKeyboardRemove())
     return "name"
-
 
 def anketa_get_name(bot, update, user_data):
     user_name = update.message.text
@@ -150,13 +142,11 @@ def anketa_get_name(bot, update, user_data):
         )
         return 'rating'
 
-
 def anketa_rating(bot, update, user_data):
     user_data['anketa_rating'] = update.message.text
     update.message.reply_text('''Пожалуйста, напишите отзыв в свободной форме
 или /cancel чтобы пропустить этот шаг''')
     return 'comment'
-
 
 def anketa_comment(bot, update, user_data):
     user_data["anketa_comment"] = update.message.text
@@ -167,7 +157,6 @@ def anketa_comment(bot, update, user_data):
     update.message.reply_text(user_text, reply_markup=get_keyboard(), parse_mode=ParseMode.HTML)
     return ConversationHandler.END
 
-
 def anketa_skip_comment(bot, update, user_data):
     user_text = """
 <b>Имя Фамилия:</b> {anketa_name}
@@ -175,6 +164,33 @@ def anketa_skip_comment(bot, update, user_data):
     update.message.reply_text(user_text, reply_markup=get_keyboard(), parse_mode=ParseMode.HTML)
     return ConversationHandler.END
 
-
 def dontknow(bot, update, user_data):
     update.message.reply_text('Не понимаю')
+
+def subscribe(bot, update):
+    subscribers.add(update.message.chat_id)
+    update.message.reply_text("Вы подписались, наберите /unsubscribe чтобы отписаться")
+    print(subscribers)
+
+def unsubscribe(bot, update):
+    if update.message.chat_id in subscribers:
+        subscribers.remove(update.message.chat_id)
+        update.message.reply_text("Спасибо, что были с нами!")
+    else:
+        update.message.reply_text("Вы не подписаны, наберите /subscribe чтобы подписаться")
+
+@mq.queuedmessage
+def send_updates(bot, job):
+    for chat_id in subscribers:
+        bot.sendMessage(chat_id=chat_id, text="Уведомление")
+
+def set_alarm(bot, update, args, job_queue):
+    try:
+        seconds = abs(int(args[0]))
+        job_queue.run_once(alarm, seconds, context=update.message.chat_id)
+    except (IndexError, ValueError):
+        update.message.reply_text("Введите число секунд после команды /alarm")
+
+@mq.queuedmessage
+def alarm(bot, job):
+    bot.send_message(chat_id=job.context, text="Сработал будильник!")
