@@ -11,13 +11,14 @@ from telegram.ext import messagequeue as mq
 
 
 from bot import subscribers
-from utils import get_user_emo, get_keyboard, is_cat
+from db import db, get_or_create_user, get_user_emo, toggle_subscription, get_subscribers
+from utils import  get_keyboard, is_cat
 import settings
 
 
 def greet_user(bot, update, user_data):
-    print(update.message.chat_id)
-    emo = get_user_emo(user_data)
+    user = get_or_create_user(db, update.effective_user, update.message)
+    emo = get_user_emo(db, user)
     text = 'Привет, {} {}'.format(update.message.chat.first_name, emo)
     update.message.reply_text(text, reply_markup=get_keyboard())
     logging.info('{}({}): /start'.format(update.message.chat.username, update.message.chat.first_name))
@@ -56,10 +57,11 @@ def send_cat_picture(bot, update, user_data):
     logging.info('{}({}): /cat'.format(update.message.chat.username, update.message.chat.first_name))
 
 def change_avatar(bot, update, user_data):
-    if 'emo' in user_data:
-        del user_data['emo']
-    user_data['emo'] = get_user_emo(user_data)
-    text = 'Новая аватарка -> {}'.format(user_data['emo'])
+    user = get_or_create_user(db, update.effective_user, update.message)
+    if 'emo' in user:
+        del user['emo']
+    emo = get_user_emo (db, user)
+    text = 'Новая аватарка -> {}'.format(emo)
     update.message.reply_text(text, reply_markup=get_keyboard())
     logging.info('{}({}): avatar changed'.format(update.message.chat.username, update.message.chat.first_name))
 
@@ -93,7 +95,8 @@ def planet_chk(bot, update, args): # Вроооде бы проще через 1
         update.message.reply_text('Неизвестная планета :(')    
 
 def talk_to_me(bot, update, user_data):
-    emo = get_user_emo(user_data)
+    user = get_or_create_user(db, update.effective_user, update.message)
+    emo = get_user_emo(db, user)
     user_text = update.message.text
     text = f'{emo} {user_text}'
     update.message.reply_text(text, reply_markup=get_keyboard())
@@ -168,21 +171,26 @@ def dontknow(bot, update, user_data):
     update.message.reply_text('Не понимаю')
 
 def subscribe(bot, update):
-    subscribers.add(update.message.chat_id)
-    update.message.reply_text("Вы подписались, наберите /unsubscribe чтобы отписаться")
-    print(subscribers)
+    user = get_or_create_user(db, update.effective_user, update.message)
+    if not user.get('subscribed'):
+        toggle_subscription(db, user)
+    update.message.reply_text('Вы подписались, наберите /unsubscribe чтобы отписаться')
 
 def unsubscribe(bot, update):
-    if update.message.chat_id in subscribers:
-        subscribers.remove(update.message.chat_id)
-        update.message.reply_text("Спасибо, что были с нами!")
+    user = get_or_create_user(db, update.effective_user, update.message)
+    if user.get('subscribed'):
+        toggle_subscription(db, user)
+        update.message.reply_text("Вы отписались")
     else:
-        update.message.reply_text("Вы не подписаны, наберите /subscribe чтобы подписаться")
+        update.message.reply_text("Вы не подписаны, нажмите /subscribe чтобы подписаться")
 
 @mq.queuedmessage
 def send_updates(bot, job):
-    for chat_id in subscribers:
-        bot.sendMessage(chat_id=chat_id, text="Уведомление")
+    for user in get_subscribers(db):
+        try:
+            bot.sendMessage(chat_id=user['chat_id'], text="BUZZZ!")
+        except error.BadRequest:
+            print('Chat {} not found'.format(user['chat_id']))
 
 def set_alarm(bot, update, args, job_queue):
     try:
