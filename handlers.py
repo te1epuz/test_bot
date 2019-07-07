@@ -4,8 +4,10 @@ import logging
 import os
 from random import choice
 
+from emoji import emojize
 import ephem
-from telegram import ParseMode, ReplyKeyboardRemove, ReplyKeyboardMarkup
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, ParseMode, ReplyKeyboardRemove,\
+    ReplyKeyboardMarkup
 from telegram.ext import ConversationHandler
 from telegram.ext import messagequeue as mq
 
@@ -53,7 +55,12 @@ def next_full_moon(bot,update, args):
 def send_cat_picture(bot, update, user_data):
     cat_list = glob('images/cat*.jpg')
     cat_pic = choice(cat_list)
-    bot.send_photo(chat_id=update.message.chat_id, photo=open(cat_pic, 'rb'), reply_markup=get_keyboard())
+
+    inlinekbd = [[InlineKeyboardButton(emojize(":thumbs_up:"), callback_data='cat_good'), 
+        InlineKeyboardButton(emojize(":thumbs_down:"), callback_data='cat_bad')]]
+    kbd_markup = InlineKeyboardMarkup(inlinekbd)
+
+    bot.send_photo(chat_id=update.message.chat_id, photo=open(cat_pic, 'rb'), reply_markup=kbd_markup)
     logging.info('{}({}): /cat'.format(update.message.chat.username, update.message.chat.first_name))
 
 def change_avatar(bot, update, user_data):
@@ -183,6 +190,15 @@ def unsubscribe(bot, update):
         update.message.reply_text("Вы отписались")
     else:
         update.message.reply_text("Вы не подписаны, нажмите /subscribe чтобы подписаться")
+
+def inline_button_pressed(bot, update):
+    query = update.callback_query
+    if query.data in ['cat_good', 'cat_bad']:
+        text = "Круто" if query.data == "cat_good" else "Печаль"
+
+        bot.edit_message_caption(caption=text, chat_id=query.message.chat_id,
+            message_id=query.message.message_id)
+
 
 @mq.queuedmessage
 def send_updates(bot, job):
